@@ -13,16 +13,6 @@ export const FLUX_THEMES = {
 export type FluxThemeId = keyof typeof FLUX_THEMES;
 export const FLUX_THEME_IDS = Object.keys(FLUX_THEMES) as FluxThemeId[];
 
-export const FLUX_PALETTE = [
-  { name: "Ink Black", hex: "#01161E" },
-  { name: "Crayola Blue", hex: "#3772FF" },
-  { name: "Lime Yellow", hex: "#D7FB41" },
-  { name: "Brilliant Rose", hex: "#F037A4" },
-  { name: "Icy Aqua", hex: "#C5FFFD" },
-  { name: "Crimson Carrot", hex: "#FF4401" },
-  { name: "Periwinkle", hex: "#ADBDFF" },
-] as const;
-
 export function readStored<T>(
   key: string,
   fallback: T,

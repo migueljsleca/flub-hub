@@ -8,7 +8,7 @@ import { DesktopIcon, ICON_H, ICON_W, type Point } from "./desktop-icon";
 import { CLOCK_RESERVE, Clock } from "./clock";
 import { OsContext, type OsContextValue } from "./os-context";
 import { FerroStage } from "./ferro-stage";
-import { FluxOsLogo } from "./flux-os-logo";
+import { FluxHubLogo } from "./flux-hub-logo";
 import { AppWindow as AppWindowIcon, ExternalLink } from "lucide-react";
 import {
   ContextMenu,
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/context-menu";
 import { OsWindow, openInNewTab, type Rect, type WindowState } from "./window";
 
+// Storage keys keep the old "flux-os" prefix so saved settings survive the rename.
 const THEME_KEY = "flux-os:theme";
 const FERRO_KEY = "flux-os:ferro";
 const ICONS_KEY = "flux-os:icon-positions";
@@ -54,9 +55,10 @@ export function Desktop() {
 
   const bounds = { w: viewport.w, h: viewport.h - CLOCK_RESERVE };
 
-  /** Saved spot, or the default left-hand column; kept on screen if the window shrank. */
+  /** Saved spot, or the default layout (top-to-bottom columns from the left); kept on screen. */
+  const perColumn = Math.max(1, Math.floor((bounds.h - 16) / ICON_H));
   const iconPoint = (app: AppId, i: number): Point => {
-    const p = iconPos[app] ?? { x: 16, y: 16 + i * ICON_H };
+    const p = iconPos[app] ?? { x: 16 + Math.floor(i / perColumn) * ICON_W, y: 16 + (i % perColumn) * ICON_H };
     return { x: Math.min(p.x, Math.max(0, bounds.w - ICON_W)), y: Math.min(p.y, Math.max(0, bounds.h - ICON_H)) };
   };
 
@@ -89,7 +91,7 @@ export function Desktop() {
         x: Math.max(8, Math.round((bounds.w - w) / 2) + offset - 56),
         y: Math.max(8, Math.round((bounds.h - h) / 2) + offset - 56),
         z,
-        maximized: false,
+        maximized: APPS[id].startMaximized ?? false,
       },
     ]);
   };
@@ -129,11 +131,11 @@ export function Desktop() {
         <div className="absolute top-6 right-6 z-[1] flex w-[clamp(220px,28vw,380px)] flex-col items-end gap-3">
           <button
             type="button"
-            aria-label="About Flux OS"
+            aria-label="About Flux Hub"
             onClick={() => openApp("about")}
             className="w-full outline-none transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-flux-soft"
           >
-            <FluxOsLogo className="w-full" />
+            <FluxHubLogo className="w-full" />
           </button>
           {/* Tagline in stacked highlighter boxes, like the poster headlines */}
           <p className="flex flex-col items-end font-heading text-[clamp(14px,1.25vw,18px)] leading-none font-bold tracking-tight text-flux-ink">
@@ -176,7 +178,7 @@ export function Desktop() {
                   onClick={() => openApp(app)}
                   className="gap-2 px-3 py-2 font-medium focus:bg-flux-soft focus:text-flux-ink focus:*:[svg]:text-flux-ink"
                 >
-                  <AppWindowIcon /> Open in Flux OS
+                  <AppWindowIcon /> Open in Flux Hub
                 </ContextMenuItem>
                 <ContextMenuItem
                   onClick={() => openInNewTab(url)}

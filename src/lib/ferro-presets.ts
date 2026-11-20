@@ -71,12 +71,12 @@ const pyramidShape = {
 /*
  * On-screen size: camera distance per preset (smaller = bigger), tuned from
  * headless screenshots at 1440x900 so all three read about equally big:
- * Spikes ~615px tall, Pyramid ~540px, Sphere ~520px. Solid shapes fill more
+ * Spikes ~570px tall, Pyramid ~540px, Sphere ~520px. Solid shapes fill more
  * area than the airy spike ball, so they need less height to feel as big.
  */
 const DISTANCE: Record<FerroPresetId, number> = {
   pyramid: 0.73,
-  spikes: 0.65,
+  spikes: 0.7,
   sphere: 1.0,
 };
 

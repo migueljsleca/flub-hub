@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flux OS",
+  title: "Flux Hub",
   description: "A tiny, dark, minimal web desktop.",
 };
 

@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /*
- * "FLUX / OPERATING SYSTEM" lockup, from Figma (Project 2 - bootcamp explore,
+ * "FLUX / HUB" lockup, built on the Figma "FLUX / OPERATING SYSTEM" lockup
+ * (Project 2 - bootcamp explore,
  * node 272:3294). Geometry is in the Figma frame's own units (607.336 wide).
  * The boxes use the theme's light colour (Figma var "type-boxes"), so the
  * lockup follows the Blue / Rose / Carrot theme; ink is FLUX Ink Black.
@@ -9,7 +10,23 @@ import { cn } from "@/lib/utils";
 const W = 607.336;
 const H = 223.78;
 const FLUX_BOX_H = 186.522;
-const LABEL = { x: 261, y: 183, w: 284.78, h: 40.78, pad: 10.89, capHeight: 19, fontSize: 26.868, textWidth: 263 };
+// Label box: same type, padding and right edge (545.78) as the Figma lockup's
+// OPERATING SYSTEM box; width fitted to "HUB" (54 units in Neue Haas 75 Bold,
+// measured against Figma's 263 for OPERATING SYSTEM).
+const LABEL_TEXT = "HUB";
+const LABEL_TEXT_WIDTH = 54;
+const LABEL_PAD = 10.89;
+const LABEL_RIGHT = 545.78;
+const LABEL = {
+  x: LABEL_RIGHT - (LABEL_TEXT_WIDTH + LABEL_PAD * 2),
+  y: 183,
+  w: LABEL_TEXT_WIDTH + LABEL_PAD * 2,
+  h: 40.78,
+  pad: LABEL_PAD,
+  capHeight: 19,
+  fontSize: 26.868,
+  textWidth: LABEL_TEXT_WIDTH,
+};
 const INK = "#01161E";
 
 const FLUX_PATHS = [
@@ -19,13 +36,13 @@ const FLUX_PATHS = [
   "M432.687 182.113L491.653 88.8124L437.663 4.21995H487.921L518.026 55.9706H518.523L549.126 4.21995H596.896L544.15 88.3148L603.116 182.113H551.116L517.777 121.903H517.279L482.696 182.113H432.687Z"
 ];
 
-export function FluxOsLogo({ className }: { className?: string }) {
+export function FluxHubLogo({ className }: { className?: string }) {
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className={cn("h-auto", className)}
       role="img"
-      aria-label="FLUX Operating System"
+      aria-label="FLUX Hub"
     >
       <rect width={W} height={FLUX_BOX_H} fill="var(--flux-soft)" />
       {FLUX_PATHS.map((d, i) => (
@@ -43,7 +60,7 @@ export function FluxOsLogo({ className }: { className?: string }) {
         textLength={LABEL.textWidth}
         lengthAdjust="spacingAndGlyphs"
       >
-        OPERATING SYSTEM
+        {LABEL_TEXT}
       </text>
     </svg>
   );

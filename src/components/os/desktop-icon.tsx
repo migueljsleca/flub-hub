@@ -84,7 +84,7 @@ export function DesktopIcon({ label, icon: Icon, pos, selected, bounds, onSelect
       >
         <Icon className="size-7" strokeWidth={1.75} />
       </span>
-      {/* Highlighter label, like the logo's OPERATING SYSTEM box */}
+      {/* Highlighter label, like the logo's HUB box */}
       <span
         className={cn(
           "px-1.5 pt-1 pb-0.5 font-heading text-[11px] leading-none font-bold tracking-tight whitespace-nowrap uppercase",

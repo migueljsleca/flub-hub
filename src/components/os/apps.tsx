@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import type { ComponentType } from "react";
-import { Clapperboard, Info, Link2, Settings2, Video } from "lucide-react";
-import { FLUX_PALETTE, FLUX_THEMES, FLUX_THEME_IDS } from "@/lib/flux";
+import { Clapperboard, Folder, Info, Link2, Settings2, Video } from "lucide-react";
+import { FLUX_THEMES, FLUX_THEME_IDS } from "@/lib/flux";
 import { FERRO_PRESET_IDS, FERRO_PRESET_LABELS } from "@/lib/ferro-presets";
 import { cn } from "@/lib/utils";
 import { BadgeIcon } from "./badge-icon";
+import { CascadeFolder, type CascadeItem } from "./cascade-folder";
 import { FerrofluidIcon } from "./ferrofluid-icon";
 import { FloraMark } from "./flora-mark";
-import { FluxOsLogo } from "./flux-os-logo";
+import { FluxHubLogo } from "./flux-hub-logo";
 import { useOs } from "./os-context";
 
 /* ------------------------------------------------------------ Links & sites */
@@ -32,7 +33,87 @@ const SITES = {
 };
 type SiteId = keyof typeof SITES;
 
-export type AppId = "settings" | "about" | SiteId | LinkId;
+/* ------------------------------------------------------------------ Folders */
+
+/**
+ * Desktop folders, shown as a cascading grid (see cascade-folder.tsx).
+ * `href` is the full file (in /public), `thumb` its preview, `ratio` its
+ * width / height so tiles keep their real shape.
+ */
+export type FolderItem = CascadeItem;
+
+const image = (dir: string, file: string, name: string, ratio: number): FolderItem => ({
+  name,
+  ratio,
+  href: `/${dir}/${file}.webp`,
+  thumb: `/${dir}/${file}.webp`,
+});
+const video = (dir: string, file: string, name: string, ratio: number): FolderItem => ({
+  name,
+  ratio,
+  video: true,
+  href: `/${dir}/video-${file}.mp4`,
+  thumb: `/${dir}/video-${file}.webp`,
+});
+
+/*
+ * Exported from Figma "Project 2 - bootcamp explore": Final Delivery Designs
+ * (node 132:3230) and Mockups & applications (node 288:2244), in reading
+ * order, web-optimised (WebP <= 1600px, H.264 MP4 <= 1600px, no audio).
+ */
+const DESIGNS: FolderItem[] = [
+  image("designs", "miami-wall", "Miami Wall Billboard", 3.62),
+  image("designs", "nashville-billboard", "Nashville Billboard", 3.62),
+  image("designs", "poster-strange-attracts-blue", "Poster · Strange Attracts", 0.666),
+  image("designs", "times-square-tower-blue", "Times Square Tower", 0.232),
+  video("designs", "story-just-announced", "Story · Just Announced", 0.562),
+  image("designs", "rollup", "Roll-up Banner", 0.425),
+  video("designs", "poster-unmatched-sound", "Poster · Unmatched Sound", 0.666),
+  image("designs", "times-square-tower-rose", "Times Square Tower", 0.232),
+  image("designs", "poster-strange-attracts-carrot", "Poster · Strange Attracts", 0.666),
+  image("designs", "poster-algorithm", "Poster · The Algorithm", 0.666),
+  image("designs", "poster-spike-the-room", "Square · Spike the Room", 1),
+];
+
+const MOCKUPS: FolderItem[] = [
+  video("mockups", "instagram-spike-the-room", "Instagram · Spike the Room", 0.778),
+  image("mockups", "wristband", "Wristband", 0.806),
+  image("mockups", "la-rooftop", "LA Rooftop", 1.792),
+  image("mockups", "keyring", "Keyring", 0.806),
+  video("mockups", "phone-in-the-street", "Phone in the Street", 0.746),
+  image("mockups", "tee", "T-shirt Print", 0.747),
+  video("mockups", "subway-lightbox-unmatched-sound", "Subway Lightbox", 0.746),
+  image("mockups", "badge-name", "ID Badge · Name Side", 0.806),
+  image("mockups", "badge-flux", "ID Badge · FLUX Side", 0.806),
+  image("mockups", "brick-wall", "Poster Wall", 1.339),
+  image("mockups", "two-friends", "Two Friends, Phone", 1.79),
+  image("mockups", "hand-glass", "Hand on the Glass", 1.79),
+  image("mockups", "poster-perfection", "Poster Perfection", 1.792),
+  image("mockups", "times-square", "Times Square", 1.792),
+  image("mockups", "vinyl", "Vinyl", 0.806),
+  image("mockups", "cap", "Cap", 0.806),
+  video("mockups", "street-poster-algorithm", "Street Poster · The Algorithm", 0.746),
+  image("mockups", "street-kiosk", "Street Kiosk", 1.792),
+  image("mockups", "rollup-venue", "Roll-up at the Venue", 0.806),
+];
+
+/** One stream, designs and mockups alternating, so the grid mixes them. */
+function interleave<T>(a: T[], b: T[]): T[] {
+  const out: T[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if (i < b.length) out.push(b[i]);
+    if (i < a.length) out.push(a[i]);
+  }
+  return out;
+}
+
+export const FOLDERS = {
+  presentation: { title: "Presentation", items: [] as FolderItem[] },
+  designs: { title: "Designs & Mockups", items: interleave(DESIGNS, MOCKUPS) },
+};
+type FolderId = keyof typeof FOLDERS;
+
+export type AppId = "settings" | "about" | FolderId | SiteId | LinkId;
 
 export type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -47,6 +128,8 @@ export type AppDef = {
   url?: string;
   /** Set false for small panels that shouldn't go full screen. */
   maximizable?: boolean;
+  /** Open already maximised (galleries). */
+  startMaximized?: boolean;
 };
 
 /* ----------------------------------------------------------- Embedded site */
@@ -84,6 +167,15 @@ function pendingLinkApp(title: string, Icon: IconComponent): ComponentType {
     );
   }
   return PendingLink;
+}
+
+/* ------------------------------------------------------------ Folder window */
+
+function folderApp(id: FolderId): ComponentType {
+  function FolderWindow() {
+    return <CascadeFolder items={FOLDERS[id].items} />;
+  }
+  return FolderWindow;
 }
 
 /* --------------------------------------------------------------- Settings */
@@ -165,20 +257,34 @@ function SettingsApp() {
 
 function AboutApp() {
   return (
-    <div className="flex h-full flex-col justify-between gap-6 p-5">
-      <div className="space-y-4">
-        <FluxOsLogo className="w-56" />
-        <div className="text-xs text-muted-foreground">Version 0.1 · a tiny desktop for the FLUX project</div>
-      </div>
-      <div className="grid grid-cols-7 gap-1.5">
-        {FLUX_PALETTE.map((c) => (
-          <div key={c.hex} className="space-y-1">
-            <div className="aspect-square border" style={{ background: c.hex }} />
-            <div className="truncate text-[10px] leading-tight text-muted-foreground" title={c.name}>
-              {c.hex}
-            </div>
-          </div>
-        ))}
+    <div className="h-full overflow-auto p-6">
+      <div className="space-y-5">
+        <FluxHubLogo className="w-52" />
+
+        <p className="inline-block bg-flux-soft px-2 pt-1.5 pb-1 font-heading text-lg leading-none font-bold tracking-tight text-flux-ink uppercase">
+          Strange attracts.
+        </p>
+
+        <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+          <p>
+            <strong className="font-semibold text-foreground">FLUX</strong> is Spotify&rsquo;s two-day event for people
+            whose taste doesn&rsquo;t fit in. The campaign celebrates the weird: one-off liquid-metal shapes that never
+            take the same form twice, fish-eye portraits of real fans pushed right up to the lens, and loud
+            highlight-box type.
+          </p>
+          <p>
+            Odd taste isn&rsquo;t something to hide. It&rsquo;s what makes you{" "}
+            <strong className="font-semibold text-foreground">magnetic</strong>. No two shapes, no two fans, no two
+            playlists are the same.
+          </p>
+          <p>
+            <strong className="font-semibold text-foreground">Flux Hub</strong> is the project&rsquo;s home base.
+            Everything lives here: the presentation, designs and mockups, the Flux Pass, the Ferrofluid Lab, the
+            FLORA file and the videos.
+          </p>
+        </div>
+
+        <p className="border-t pt-3 text-[11px] text-muted-foreground">Spotify · See What You Hear · 2026</p>
       </div>
     </div>
   );
@@ -189,9 +295,13 @@ function AboutApp() {
 const SITE_SIZE = { w: 1180, h: 760 };
 const LINK_SIZE = { w: 360, h: 240 };
 
+const FOLDER_SIZE = { w: 780, h: 560 };
+
 export const APPS: Record<AppId, AppDef> = {
+  presentation: { title: FOLDERS.presentation.title, icon: Folder, size: FOLDER_SIZE, Component: folderApp("presentation") },
+  designs: { title: FOLDERS.designs.title, icon: Folder, size: FOLDER_SIZE, Component: folderApp("designs"), startMaximized: true },
   settings: { title: "Settings", icon: Settings2, size: { w: 520, h: 520 }, Component: SettingsApp, maximizable: false },
-  about: { title: "About", icon: Info, size: { w: 420, h: 300 }, Component: AboutApp },
+  about: { title: "About", icon: Info, size: { w: 460, h: 560 }, Component: AboutApp, maximizable: false },
   "flux-pass": {
     title: "Flux Pass",
     icon: BadgeIcon,
@@ -221,6 +331,8 @@ export const APPS: Record<AppId, AppDef> = {
 /** What sits on the desktop, in default top-to-bottom order. */
 export const DESKTOP_ITEMS: AppId[] = [
   "settings",
+  "presentation",
+  "designs",
   "flux-pass",
   "ferrofluid-lab",
   "flora-file",
