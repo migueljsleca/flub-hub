@@ -22,10 +22,19 @@ import { useOs } from "./os-context";
  */
 export const LINKS = {
   "flora-file": "https://app.flora.ai/join-project/46bf0eff-2591-4b2f-b48f-0f72754c67ef" as string | null,
-  "internal-video": null as string | null,
-  "external-video": null as string | null,
 };
 type LinkId = keyof typeof LINKS;
+
+/** Loom videos, played inside an OS window (share links; the embed URL is derived). */
+const VIDEOS = {
+  "internal-video": "https://www.loom.com/share/03da3982c7f54a65b0ebf83c538c0f5a",
+  "external-video": "https://www.loom.com/share/28a7c5c81eb54e6d91281bd47f84a2c8",
+};
+type VideoId = keyof typeof VIDEOS;
+
+/** loom.com/share/ID → the bare player at loom.com/embed/ID. */
+const loomEmbed = (share: string) =>
+  share.replace("/share/", "/embed/") + "?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true";
 
 /** Live sites that open inside an OS window. */
 const SITES = {
@@ -113,7 +122,7 @@ export const FOLDERS = {
 };
 type FolderId = keyof typeof FOLDERS;
 
-export type AppId = "settings" | "about" | "presentation" | FolderId | SiteId | LinkId;
+export type AppId = "settings" | "about" | "presentation" | FolderId | SiteId | LinkId | VideoId;
 
 export type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -143,7 +152,7 @@ function siteApp(url: string, title: string): ComponentType {
         src={url}
         title={title}
         className="absolute inset-0 size-full border-0 bg-background"
-        allow="clipboard-write; fullscreen"
+        allow="autoplay; clipboard-write; fullscreen; picture-in-picture"
       />
     );
   }
@@ -298,6 +307,7 @@ const SITE_SIZE = { w: 1180, h: 760 };
 const LINK_SIZE = { w: 360, h: 240 };
 
 const FOLDER_SIZE = { w: 780, h: 560 };
+const VIDEO_SIZE = { w: 1040, h: 620 };
 
 export const APPS: Record<AppId, AppDef> = {
   presentation: {
@@ -328,12 +338,23 @@ export const APPS: Record<AppId, AppDef> = {
     url: SITES["ferrofluid-lab"],
   },
   "flora-file": { title: "Flora File", icon: FloraMark, size: LINK_SIZE, Component: pendingLinkApp("Flora File", FloraMark) },
-  "internal-video": { title: "Internal Video", icon: Video, size: LINK_SIZE, Component: pendingLinkApp("Internal Video", Video) },
+  "internal-video": {
+    title: "Internal Video",
+    icon: Video,
+    size: VIDEO_SIZE,
+    Component: siteApp(loomEmbed(VIDEOS["internal-video"]), "Internal Video"),
+    embed: true,
+    url: VIDEOS["internal-video"],
+    aspect: 16 / 9,
+  },
   "external-video": {
     title: "External Video",
     icon: Clapperboard,
-    size: LINK_SIZE,
-    Component: pendingLinkApp("External Video", Clapperboard),
+    size: VIDEO_SIZE,
+    Component: siteApp(loomEmbed(VIDEOS["external-video"]), "External Video"),
+    embed: true,
+    url: VIDEOS["external-video"],
+    aspect: 16 / 9,
   },
 };
 
