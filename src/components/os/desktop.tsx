@@ -34,6 +34,25 @@ const isPoint = (v: unknown): v is Point =>
 const isIconPositions = (v: unknown): v is IconPositions =>
   typeof v === "object" && v !== null && Object.values(v).every(isPoint);
 
+/** Desktop size the default layout was arranged at (icon area, clock strip excluded). */
+const LAYOUT_REF = { w: 1650, h: 1034 - CLOCK_RESERVE };
+
+/**
+ * First-visit icon layout: a loose scatter down the left, settings tucked
+ * bottom-right above the clock. Settings is anchored to the bottom-right corner
+ * so it follows the screen edge on any size.
+ */
+const DEFAULT_LAYOUT: Partial<Record<AppId, Point | { right: number; bottom: number }>> = {
+  "flora-file": { x: 83, y: 160 },
+  "ferrofluid-lab": { x: 182, y: 224 },
+  "flux-pass": { x: 307, y: 248 },
+  designs: { x: 107, y: 430 },
+  presentation: { x: 262, y: 474 },
+  "internal-video": { x: 127, y: 627 },
+  "external-video": { x: 248, y: 693 },
+  settings: { right: 204, bottom: 48 },
+};
+
 
 export function Desktop() {
   const [theme, setThemeState] = useState<FluxThemeId>(() => readStored(THEME_KEY, "blue", isThemeId));
@@ -55,10 +74,20 @@ export function Desktop() {
 
   const bounds = { w: viewport.w, h: viewport.h - CLOCK_RESERVE };
 
-  /** Saved spot, or the default layout (top-to-bottom columns from the left); kept on screen. */
+  /** Saved spot, else the default layout, else a top-to-bottom column from the left; kept on screen. */
   const perColumn = Math.max(1, Math.floor((bounds.h - 16) / ICON_H));
+  const defaultPoint = (app: AppId, i: number): Point => {
+    const d = DEFAULT_LAYOUT[app];
+    if (!d) return { x: 16 + Math.floor(i / perColumn) * ICON_W, y: 16 + (i % perColumn) * ICON_H };
+    // Left-anchored icons shrink toward the top-left on screens smaller than the reference.
+    const s = Math.min(1, bounds.w / LAYOUT_REF.w, bounds.h / LAYOUT_REF.h);
+    return {
+      x: "right" in d ? bounds.w - ICON_W - d.right : Math.round(d.x * s),
+      y: "bottom" in d ? bounds.h - ICON_H - d.bottom : Math.round(d.y * s),
+    };
+  };
   const iconPoint = (app: AppId, i: number): Point => {
-    const p = iconPos[app] ?? { x: 16 + Math.floor(i / perColumn) * ICON_W, y: 16 + (i % perColumn) * ICON_H };
+    const p = iconPos[app] ?? defaultPoint(app, i);
     return { x: Math.min(p.x, Math.max(0, bounds.w - ICON_W)), y: Math.min(p.y, Math.max(0, bounds.h - ICON_H)) };
   };
 
