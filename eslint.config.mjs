@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 3D ferrofluid engine ported as-is from ferrofluid-lab
+    "src/lib/ferro/**",
   ]),
 ]);
 

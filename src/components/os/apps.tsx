@@ -1,225 +1,95 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type ComponentType } from "react";
-import {
-  ArrowLeft,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Folder,
-  FolderOpen,
-  Images,
-  Info,
-  Settings2,
-  StickyNote,
-  type LucideIcon,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  FERROFLUIDS,
-  FLUX_PALETTE,
-  FLUX_THEMES,
-  FLUX_THEME_IDS,
-  ferroSrc,
-  ferroThumb,
-  readStored,
-  writeStored,
-} from "@/lib/flux";
+import type { ComponentType } from "react";
+import { Clapperboard, Info, Link2, Settings2, Video } from "lucide-react";
+import { FLUX_PALETTE, FLUX_THEMES, FLUX_THEME_IDS } from "@/lib/flux";
+import { FERRO_PRESET_IDS, FERRO_PRESET_LABELS } from "@/lib/ferro-presets";
 import { cn } from "@/lib/utils";
+import { BadgeIcon } from "./badge-icon";
+import { FerrofluidIcon } from "./ferrofluid-icon";
+import { FloraMark } from "./flora-mark";
 import { FluxOsLogo } from "./flux-os-logo";
 import { useOs } from "./os-context";
 
-export type AppId = "files" | "gallery" | "notes" | "settings" | "about";
+/* ------------------------------------------------------------ Links & sites */
+
+/**
+ * Desktop links. Paste a URL here and double-clicking the icon opens it in a
+ * new tab; while it's null the icon opens a small "no link yet" window.
+ */
+export const LINKS = {
+  "flora-file": "https://app.flora.ai/join-project/46bf0eff-2591-4b2f-b48f-0f72754c67ef" as string | null,
+  "internal-video": null as string | null,
+  "external-video": null as string | null,
+};
+type LinkId = keyof typeof LINKS;
+
+/** Live sites that open inside an OS window. */
+const SITES = {
+  "flux-pass": "https://flux-pass.miguel-leca.com/",
+  "ferrofluid-lab": "https://ferrofluid-lab.miguel-leca.com/",
+};
+type SiteId = keyof typeof SITES;
+
+export type AppId = "settings" | "about" | SiteId | LinkId;
+
+export type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
 export type AppDef = {
   title: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   size: { w: number; h: number };
   Component: ComponentType;
+  /** Content is an iframe: the window shields it while unfocused / dragging. */
+  embed?: boolean;
+  /** Live site shown in the window; also offered as "Open in new tab". */
+  url?: string;
+  /** Set false for small panels that shouldn't go full screen. */
+  maximizable?: boolean;
 };
 
-/* ------------------------------------------------------------------ Files */
+/* ----------------------------------------------------------- Embedded site */
 
-const PROJECT_FOLDERS = [
-  "flux-pass",
-  "flux-pass-doc",
-  "ferrofluid-lab",
-  "shakeout-lab",
-  "poster-wall",
-  "venue",
-  "tee-print",
-  "stickers",
-  "badge-mockup",
-  "video-mockup",
-  "concepts",
-  "icons",
-];
-
-function FilesApp() {
-  const [path, setPath] = useState<string[]>([]);
-  const folder = path.at(-1);
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b px-3 py-2 text-xs text-muted-foreground">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          disabled={path.length === 0}
-          onClick={() => setPath((p) => p.slice(0, -1))}
-          aria-label="Back"
-        >
-          <ArrowLeft />
-        </Button>
-        <button className="px-1 font-medium hover:bg-flux-soft hover:text-flux-ink" onClick={() => setPath([])}>
-          Project 2
-        </button>
-        {path.map((p) => (
-          <span key={p} className="flex items-center gap-1">
-            <ChevronRight className="size-3" />
-            <span className="text-foreground">{p}</span>
-          </span>
-        ))}
-      </div>
-
-      {folder ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-          <FolderOpen className="size-8 opacity-40" />
-          This folder is empty
-        </div>
-      ) : (
-        <div className="grid flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-1 overflow-auto p-3">
-          {PROJECT_FOLDERS.map((name) => (
-            <button
-              key={name}
-              onDoubleClick={() => setPath([name])}
-              onKeyDown={(e) => e.key === "Enter" && setPath([name])}
-              className="group flex flex-col items-center gap-1.5 p-2 outline-none hover:bg-secondary focus-visible:bg-secondary"
-            >
-              <Folder className="size-9 text-flux-soft" strokeWidth={1.75} />
-              <span className="w-full truncate text-center text-xs text-muted-foreground group-hover:text-foreground">
-                {name}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function siteApp(url: string, title: string): ComponentType {
+  function SiteApp() {
+    return (
+      <iframe
+        src={url}
+        title={title}
+        className="absolute inset-0 size-full border-0 bg-background"
+        allow="clipboard-write; fullscreen"
+      />
+    );
+  }
+  return SiteApp;
 }
 
-/* ---------------------------------------------------------------- Gallery */
+/* ------------------------------------------------------------ Pending link */
 
-function GalleryApp() {
-  const { setWallpaper, wallpaper } = useOs();
-  const [open, setOpen] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (open === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") setOpen((i) => (i === null ? i : (i + 1) % FERROFLUIDS.length));
-      if (e.key === "ArrowLeft")
-        setOpen((i) => (i === null ? i : (i - 1 + FERROFLUIDS.length) % FERROFLUIDS.length));
-      if (e.key === "Escape") setOpen(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  if (open !== null) {
-    const id = FERROFLUIDS[open];
-    const isWallpaper = wallpaper === id;
+function pendingLinkApp(title: string, Icon: IconComponent): ComponentType {
+  function PendingLink() {
     return (
-      <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <Button variant="ghost" size="sm" onClick={() => setOpen(null)}>
-            <ArrowLeft /> All
-          </Button>
-          <span className="text-xs tabular-nums text-muted-foreground">
-            ferrofluid {id} · {open + 1}/{FERROFLUIDS.length}
-          </span>
-          <Button size="sm" variant={isWallpaper ? "secondary" : "default"} onClick={() => setWallpaper(id)}>
-            {isWallpaper ? <Check /> : null}
-            {isWallpaper ? "Wallpaper" : "Set as wallpaper"}
-          </Button>
-        </div>
-        <div className="relative flex-1 bg-flux">
-          <Image src={ferroSrc(id)} alt={`Ferrofluid ${id}`} fill sizes="600px" className="object-contain p-8" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-1/2 left-2 -translate-y-1/2"
-            onClick={() => setOpen((open - 1 + FERROFLUIDS.length) % FERROFLUIDS.length)}
-            aria-label="Previous"
-          >
-            <ChevronLeft />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-1/2 right-2 -translate-y-1/2"
-            onClick={() => setOpen((open + 1) % FERROFLUIDS.length)}
-            aria-label="Next"
-          >
-            <ChevronRight />
-          </Button>
-        </div>
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <span className="flex size-14 items-center justify-center border text-flux-soft">
+          <Icon className="size-7" strokeWidth={1.75} />
+        </span>
+        <span className="bg-flux-soft px-1.5 py-0.5 font-heading text-xs font-bold tracking-tight text-flux-ink uppercase">
+          {title}
+        </span>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Link2 className="size-3.5" /> No link added yet
+        </p>
       </div>
     );
   }
-
-  return (
-    <div className="grid h-full auto-rows-min grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2 overflow-auto p-3">
-      {FERROFLUIDS.map((id, i) => (
-        <button
-          key={id}
-          onClick={() => setOpen(i)}
-          className="relative aspect-square overflow-hidden border bg-background transition-colors hover:border-flux hover:bg-flux"
-        >
-          <Image src={ferroThumb(id)} alt={`Ferrofluid ${id}`} fill sizes="100px" className="object-contain p-2" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ Notes */
-
-const NOTES_KEY = "flux-os:notes";
-const isString = (v: unknown): v is string => typeof v === "string";
-
-function NotesApp() {
-  const [text, setText] = useState(() =>
-    readStored(NOTES_KEY, "Welcome to Flux OS.\n\nAnything you write here stays in this browser.", isString),
-  );
-
-  useEffect(() => {
-    const t = setTimeout(() => writeStored(NOTES_KEY, text), 250);
-    return () => clearTimeout(t);
-  }, [text]);
-
-  return (
-    <div className="flex h-full flex-col">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        spellCheck={false}
-        className="flex-1 resize-none bg-transparent p-4 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
-        placeholder="Start typing…"
-      />
-      <div className="flex justify-between border-t px-4 py-1.5 text-[11px] text-muted-foreground tabular-nums">
-        <span>Saved locally</span>
-        <span>{text.length} chars</span>
-      </div>
-    </div>
-  );
+  return PendingLink;
 }
 
 /* --------------------------------------------------------------- Settings */
 
 function SettingsApp() {
-  const { theme, setTheme, wallpaper, setWallpaper } = useOs();
+  const { theme, setTheme, ferro, setFerro } = useOs();
 
   return (
     <div className="h-full space-y-6 overflow-auto p-4">
@@ -253,31 +123,39 @@ function SettingsApp() {
       </section>
 
       <section className="space-y-2">
-        <h3 className="inline-block bg-flux-soft px-1.5 py-0.5 text-xs font-bold tracking-tight text-flux-ink">Wallpaper</h3>
-        <div className="grid grid-cols-6 gap-1.5">
+        <h3 className="inline-block bg-flux-soft px-1.5 py-0.5 text-xs font-bold tracking-tight text-flux-ink">Ferrofluid</h3>
+        <div className="grid grid-cols-4 gap-2">
           <button
-            onClick={() => setWallpaper(null)}
+            onClick={() => setFerro(null)}
             className={cn(
               "flex aspect-square items-center justify-center border bg-background text-[11px] font-medium text-muted-foreground",
-              wallpaper === null ? "border-flux-soft bg-flux-soft text-flux-ink" : "hover:bg-secondary",
+              ferro === null ? "border-flux-soft bg-flux-soft text-flux-ink" : "hover:bg-secondary",
             )}
           >
             None
           </button>
-          {FERROFLUIDS.map((id) => (
+          {FERRO_PRESET_IDS.map((id) => (
             <button
               key={id}
-              onClick={() => setWallpaper(id)}
+              onClick={() => setFerro(id)}
               className={cn(
-                "relative aspect-square border",
-                wallpaper === id ? "border-flux bg-flux" : "bg-background hover:bg-secondary",
+                "group relative aspect-square overflow-hidden border",
+                ferro === id ? "border-flux-soft outline-2 outline-flux-soft" : "hover:border-muted-foreground",
               )}
-              aria-label={`Ferrofluid ${id}`}
             >
-              <Image src={ferroThumb(id)} alt="" fill sizes="64px" className="object-contain p-1" />
+              <Image src={`/ferro-presets/${id}.png`} alt="" fill sizes="120px" className="object-cover" />
+              <span
+                className={cn(
+                  "absolute bottom-1.5 left-1.5 px-1.5 pt-1 pb-0.5 font-heading text-[10px] leading-none font-bold tracking-tight uppercase",
+                  ferro === id ? "bg-flux-soft text-flux-ink" : "bg-card text-foreground",
+                )}
+              >
+                {FERRO_PRESET_LABELS[id]}
+              </span>
             </button>
           ))}
         </div>
+        <p className="text-xs text-muted-foreground">Drag the ferrofluid on the desktop to turn it.</p>
       </section>
     </div>
   );
@@ -308,11 +186,49 @@ function AboutApp() {
 
 /* --------------------------------------------------------------- Registry */
 
+const SITE_SIZE = { w: 1180, h: 760 };
+const LINK_SIZE = { w: 360, h: 240 };
+
 export const APPS: Record<AppId, AppDef> = {
-  files: { title: "Projects", icon: Folder, size: { w: 620, h: 420 }, Component: FilesApp },
-  gallery: { title: "Ferrofluids", icon: Images, size: { w: 640, h: 480 }, Component: GalleryApp },
-  notes: { title: "Notes", icon: StickyNote, size: { w: 440, h: 400 }, Component: NotesApp },
-  settings: { title: "Settings", icon: Settings2, size: { w: 520, h: 520 }, Component: SettingsApp },
+  settings: { title: "Settings", icon: Settings2, size: { w: 520, h: 520 }, Component: SettingsApp, maximizable: false },
   about: { title: "About", icon: Info, size: { w: 420, h: 300 }, Component: AboutApp },
+  "flux-pass": {
+    title: "Flux Pass",
+    icon: BadgeIcon,
+    size: SITE_SIZE,
+    Component: siteApp(SITES["flux-pass"], "Flux Pass"),
+    embed: true,
+    url: SITES["flux-pass"],
+  },
+  "ferrofluid-lab": {
+    title: "Ferrofluid Lab",
+    icon: FerrofluidIcon,
+    size: SITE_SIZE,
+    Component: siteApp(SITES["ferrofluid-lab"], "Ferrofluid Lab"),
+    embed: true,
+    url: SITES["ferrofluid-lab"],
+  },
+  "flora-file": { title: "Flora File", icon: FloraMark, size: LINK_SIZE, Component: pendingLinkApp("Flora File", FloraMark) },
+  "internal-video": { title: "Internal Video", icon: Video, size: LINK_SIZE, Component: pendingLinkApp("Internal Video", Video) },
+  "external-video": {
+    title: "External Video",
+    icon: Clapperboard,
+    size: LINK_SIZE,
+    Component: pendingLinkApp("External Video", Clapperboard),
+  },
 };
 
+/** What sits on the desktop, in default top-to-bottom order. */
+export const DESKTOP_ITEMS: AppId[] = [
+  "settings",
+  "flux-pass",
+  "ferrofluid-lab",
+  "flora-file",
+  "internal-video",
+  "external-video",
+];
+
+/** A desktop link with a URL opens in a new tab instead of a window. */
+export function linkFor(id: AppId): string | null {
+  return id in LINKS ? LINKS[id as LinkId] : null;
+}

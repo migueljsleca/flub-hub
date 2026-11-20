@@ -2,14 +2,15 @@
 
 import { createContext, useContext } from "react";
 import type { FluxThemeId } from "@/lib/flux";
+import type { FerroPresetId } from "@/lib/ferro-presets";
 import type { AppId } from "./apps";
 
 export type OsContextValue = {
   theme: FluxThemeId;
   setTheme: (theme: FluxThemeId) => void;
-  /** Ferrofluid id ("01"…"16") or null for no centrepiece. */
-  wallpaper: string | null;
-  setWallpaper: (id: string | null) => void;
+  /** 3D ferrofluid preset in the middle of the desktop, or null for none. */
+  ferro: FerroPresetId | null;
+  setFerro: (id: FerroPresetId | null) => void;
   openApp: (id: AppId) => void;
 };
 

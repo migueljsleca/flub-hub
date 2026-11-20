@@ -139,6 +139,11 @@
   }
 }
 
+/* While a window or icon is dragged, iframes must not catch the pointer. */
+html[data-dragging] iframe {
+  pointer-events: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -158,4 +163,5 @@
     color: #01161e;
   }
 }
+
 

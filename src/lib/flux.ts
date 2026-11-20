@@ -23,17 +23,18 @@ export const FLUX_PALETTE = [
   { name: "Periwinkle", hex: "#ADBDFF" },
 ] as const;
 
-/** Ferrofluid renders copied from flux-pass: "01" … "16". */
-export const FERROFLUIDS = Array.from({ length: 16 }, (_, i) => String(i + 1).padStart(2, "0"));
-
-export const ferroSrc = (id: string) => `/ferrofluid/${id}.png`;
-export const ferroThumb = (id: string) => `/ferrofluid/thumbs/${id}.png`;
-
-export function readStored<T>(key: string, fallback: T, isValid: (v: unknown) => v is T): T {
+export function readStored<T>(
+  key: string,
+  fallback: T,
+  isValid: (v: unknown) => v is T,
+  /** Old stored values mapped to their new names. */
+  renamed: Record<string, unknown> = {},
+): T {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null) return fallback;
-    const parsed: unknown = JSON.parse(raw);
+    let parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === "string" && parsed in renamed) parsed = renamed[parsed];
     return isValid(parsed) ? parsed : fallback;
   } catch {
     return fallback;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { Maximize2, Minimize2, X, type LucideIcon } from "lucide-react";
+import { ExternalLink, Maximize2, Minimize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { IconComponent } from "./apps";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -18,8 +19,14 @@ const MIN_H = 220;
 type Props = {
   win: WindowState;
   title: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   focused: boolean;
+  /** Content is an iframe: block it while unfocused so a click focuses the window. */
+  embed?: boolean;
+  /** When set, the title bar gets an "Open in new tab" button. */
+  url?: string;
+  /** False hides the maximize button and the double-click-to-maximize. */
+  maximizable?: boolean;
   /** Area windows may move in. */
   bounds: { w: number; h: number };
   onFocus: () => void;
@@ -35,6 +42,9 @@ export function OsWindow({
   title,
   icon: Icon,
   focused,
+  embed,
+  url,
+  maximizable = true,
   bounds,
   onFocus,
   onClose,
@@ -51,6 +61,10 @@ export function OsWindow({
     e.currentTarget.setPointerCapture(e.pointerId);
     const rect = { x: win.x, y: win.y, w: win.w, h: win.h };
     drag.current = { px: e.clientX, py: e.clientY, rect, last: rect, mode };
+    // Iframes would swallow the pointer mid-drag; switch them off until drop.
+    document.documentElement.dataset.dragging = "";
+    // Safety net: whatever happens, a release anywhere clears the flag.
+    window.addEventListener("pointerup", clearDragging, { once: true });
   };
 
   // While dragging, write straight to the element's style: no React render per
@@ -85,6 +99,7 @@ export function OsWindow({
   const end = () => {
     const d = drag.current;
     drag.current = null;
+    delete document.documentElement.dataset.dragging;
     if (d && d.last !== d.rect) onRect(d.last);
   };
 
@@ -100,7 +115,10 @@ export function OsWindow({
       className={cn(
         // Flat: solid fill, hard 1px edge, square corners, no blur or shadow
         "absolute flex flex-col overflow-hidden border bg-card text-card-foreground",
-        "animate-in fade-in-0 zoom-in-[0.98] duration-150",
+        // Open animation only. Not `duration-150`: in Tailwind v4 that also sets a
+        // transition on every property, so left/top would ease and the window
+        // would trail the cursor while dragging.
+        "animate-in fade-in-0 zoom-in-[0.98] [animation-duration:150ms] transition-none",
         focused ? "border-flux-soft" : "border-border",
       )}
     >
@@ -110,7 +128,7 @@ export function OsWindow({
         onPointerUp={end}
         onPointerCancel={end}
         onLostPointerCapture={end}
-        onDoubleClick={(e) => !(e.target as HTMLElement).closest("button") && onToggleMaximize()}
+        onDoubleClick={(e) => maximizable && !(e.target as HTMLElement).closest("button") && onToggleMaximize()}
         className={cn(
           "flex h-9 shrink-0 cursor-default touch-none items-center gap-2 pr-0.5 pl-3 select-none",
           // Focused title bar is a highlighter box, like the poster headlines
@@ -118,16 +136,26 @@ export function OsWindow({
         )}
       >
         <Icon className="size-3.5" strokeWidth={2.25} />
-        <h2 className="flex-1 truncate text-[13px] font-bold tracking-tight">{title}</h2>
-        <WinButton label={win.maximized ? "Restore" : "Maximize"} onClick={onToggleMaximize} focused={focused}>
-          {win.maximized ? <Minimize2 /> : <Maximize2 />}
-        </WinButton>
+        <h2 className="flex-1 truncate font-heading text-[13px] font-bold tracking-tight uppercase">{title}</h2>
+        {url && (
+          <WinButton label="Open in new tab" onClick={() => openInNewTab(url)} focused={focused}>
+            <ExternalLink />
+          </WinButton>
+        )}
+        {maximizable && (
+          <WinButton label={win.maximized ? "Restore" : "Maximize"} onClick={onToggleMaximize} focused={focused}>
+            {win.maximized ? <Minimize2 /> : <Maximize2 />}
+          </WinButton>
+        )}
         <WinButton label="Close" onClick={onClose} focused={focused} danger>
           <X />
         </WinButton>
       </header>
 
-      <div className="relative min-h-0 flex-1">{children}</div>
+      <div className="relative min-h-0 flex-1">
+        {children}
+        {embed && !focused && <div aria-hidden className="absolute inset-0" />}
+      </div>
 
       {!win.maximized && (
         <div
@@ -175,6 +203,14 @@ function WinButton({
       {children}
     </button>
   );
+}
+
+export function openInNewTab(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function clearDragging() {
+  delete document.documentElement.dataset.dragging;
 }
 
 function clamp(v: number, min: number, max: number) {

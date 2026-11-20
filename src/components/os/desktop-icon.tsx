@@ -1,18 +1,18 @@
 "use client";
 
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { IconComponent } from "./apps";
 
 export type Point = { x: number; y: number };
 
-export const ICON_W = 96;
+export const ICON_W = 128;
 export const ICON_H = 96;
 const DRAG_THRESHOLD = 4; // px before a press turns into a drag
 
 type Props = {
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   pos: Point;
   selected: boolean;
   /** Area the icon may be dragged in. */
@@ -32,6 +32,7 @@ export function DesktopIcon({ label, icon: Icon, pos, selected, bounds, onSelect
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { px: e.clientX, py: e.clientY, start: pos, moved: false, last: pos };
+    document.documentElement.dataset.dragging = "";
     onSelect();
   };
 
@@ -57,6 +58,7 @@ export function DesktopIcon({ label, icon: Icon, pos, selected, bounds, onSelect
   const end = () => {
     const d = drag.current;
     drag.current = null;
+    delete document.documentElement.dataset.dragging;
     if (d?.moved) onDrop(d.last);
   };
 
@@ -82,10 +84,11 @@ export function DesktopIcon({ label, icon: Icon, pos, selected, bounds, onSelect
       >
         <Icon className="size-7" strokeWidth={1.75} />
       </span>
+      {/* Highlighter label, like the logo's OPERATING SYSTEM box */}
       <span
         className={cn(
-          "max-w-full truncate px-1.5 py-0.5 text-xs font-medium",
-          selected ? "bg-flux-soft font-bold text-flux-ink" : "text-foreground",
+          "px-1.5 pt-1 pb-0.5 font-heading text-[11px] leading-none font-bold tracking-tight whitespace-nowrap uppercase",
+          selected ? "bg-foreground text-flux-ink" : "bg-flux-soft text-flux-ink",
         )}
       >
         {label}
