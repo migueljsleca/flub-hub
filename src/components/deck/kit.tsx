@@ -29,6 +29,13 @@ export const DECK_COLORS = {
 export type DeckColor = keyof typeof DECK_COLORS;
 
 type Box = { x: number; y: number; w?: number; h?: number };
+
+/**
+ * Bleed a block's fill 0.6px on every side. Where two flat blocks meet (stacked
+ * highlight boxes, the lockup's tag under the FLUX box), scaling the slide to a
+ * fractional size can leave a hairline of background between them; this seals it.
+ */
+export const sealSeams = (color: string) => ({ boxShadow: `0 0 0 0.6px ${color}` });
 const boxStyle = ({ x, y, w, h }: Box): CSSProperties => ({ left: x, top: y, width: w, height: h });
 
 /** The 1920x1080 page. */
@@ -74,9 +81,7 @@ export function Hl({
     <div className={cn("absolute px-[10px] py-[7px]", className)} style={{
         ...boxStyle({ x, y }),
         background: DECK_COLORS[color],
-        // Bleed the fill 0.6px so stacked boxes never show a hairline seam
-        // when the slide is scaled down to a fractional size.
-        boxShadow: `0 0 0 0.6px ${DECK_COLORS[color]}`,
+        ...sealSeams(DECK_COLORS[color]),
       }}>
       <p
         // z-[1]: the type sits above every box fill on the slide, so in stacked
@@ -181,7 +186,7 @@ export function FluxLockup({ x, y, w, color = "lime" }: { x: number; y: number; 
       <FluxBox x={0} y={0} w={w} color={color} className="relative" />
       <div
         className="flex items-center"
-        style={{ background: DECK_COLORS[color], width: 654.93 * k, height: 126.374 * k, padding: 12.604 * k, gap: 30.25 * k }}
+        style={{ ...sealSeams(DECK_COLORS[color]), background: DECK_COLORS[color], width: 654.93 * k, height: 126.374 * k, padding: 12.604 * k, gap: 30.25 * k }}
       >
         <p
           className="font-bold whitespace-nowrap text-[#01161e] uppercase [text-box:trim-both_cap_alphabetic]"

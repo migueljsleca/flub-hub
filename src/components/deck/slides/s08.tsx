@@ -1,4 +1,4 @@
-import { DECK_COLORS, FluxBox, Hl, Meta, Slide, Text, type DeckColor } from "../kit";
+import { DECK_COLORS, FluxBox, Hl, Meta, Slide, Text, type DeckColor, sealSeams } from "../kit";
 
 /*
  * The FLUX lockup as drawn in this Figma frame. Each instance is the FLUX box
@@ -40,6 +40,7 @@ function Lockup({ x, y, w, logoX = 0, tagX, tagY, color }: LockupProps) {
           padding: 12.604 * k,
           gap: 30.25 * k,
           background: DECK_COLORS[color],
+          ...sealSeams(DECK_COLORS[color]),
         }}
       >
         <p
@@ -61,7 +62,7 @@ function LockupSmallTag({ x, y, w, logoX = 0, tagX, tagY, color }: LockupProps) 
       <FluxBox x={logoX} y={0} w={w} color={color} />
       <div
         className="absolute flex flex-col items-end"
-        style={{ left: tagX, top: tagY, padding: 3.071, gap: 3.992, background: DECK_COLORS[color] }}
+        style={{ left: tagX, top: tagY, padding: 3.071, gap: 3.992, background: DECK_COLORS[color], ...sealSeams(DECK_COLORS[color]) }}
       >
         <p
           className="font-bold whitespace-nowrap text-[#01161e] uppercase [text-box:trim-both_cap_alphabetic]"

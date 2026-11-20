@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DECK_COLORS, DeckFerro, FluxLockup, Hl, Img, Meta, Slide } from "../kit";
+import { DECK_COLORS, DeckFerro, FluxLockup, Hl, Img, Meta, Slide, sealSeams } from "../kit";
 
 /**
  * A rotated Figma frame: `x y w h` is the rotated frame's bounding box (what
@@ -20,7 +20,7 @@ function Word({ x, y, w, children }: { x: number; y: number; w: number; children
   return (
     <div
       className="absolute flex items-center justify-center p-[5.534px]"
-      style={{ left: x, top: y, width: w, height: 105.596, background: DECK_COLORS.lime }}
+      style={{ left: x, top: y, width: w, height: 105.596, background: DECK_COLORS.lime, ...sealSeams(DECK_COLORS.lime) }}
     >
       <p className="text-[131.786px] leading-[0.8] font-bold whitespace-nowrap text-[#01161e] uppercase [text-box:trim-both_cap_alphabetic]">
         {children}
