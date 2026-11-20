@@ -8,6 +8,7 @@ import { FERRO_PRESET_IDS, FERRO_PRESET_LABELS } from "@/lib/ferro-presets";
 import { cn } from "@/lib/utils";
 import { BadgeIcon } from "./badge-icon";
 import { CascadeFolder, type CascadeItem } from "./cascade-folder";
+import { Deck } from "@/components/deck/deck";
 import { FerrofluidIcon } from "./ferrofluid-icon";
 import { FloraMark } from "./flora-mark";
 import { FluxHubLogo } from "./flux-hub-logo";
@@ -108,12 +109,11 @@ function interleave<T>(a: T[], b: T[]): T[] {
 }
 
 export const FOLDERS = {
-  presentation: { title: "Presentation", items: [] as FolderItem[] },
   designs: { title: "Designs & Mockups", items: interleave(DESIGNS, MOCKUPS) },
 };
 type FolderId = keyof typeof FOLDERS;
 
-export type AppId = "settings" | "about" | FolderId | SiteId | LinkId;
+export type AppId = "settings" | "about" | "presentation" | FolderId | SiteId | LinkId;
 
 export type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -130,6 +130,8 @@ export type AppDef = {
   maximizable?: boolean;
   /** Open already maximised (galleries). */
   startMaximized?: boolean;
+  /** Keep the window's content at this ratio (w / h), e.g. 16 / 9 for slides. */
+  aspect?: number;
 };
 
 /* ----------------------------------------------------------- Embedded site */
@@ -298,7 +300,14 @@ const LINK_SIZE = { w: 360, h: 240 };
 const FOLDER_SIZE = { w: 780, h: 560 };
 
 export const APPS: Record<AppId, AppDef> = {
-  presentation: { title: FOLDERS.presentation.title, icon: Folder, size: FOLDER_SIZE, Component: folderApp("presentation") },
+  presentation: {
+    title: "Presentation",
+    icon: Folder,
+    size: { w: 1120, h: 680 },
+    Component: Deck,
+    startMaximized: true,
+    aspect: 16 / 9,
+  },
   designs: { title: FOLDERS.designs.title, icon: Folder, size: FOLDER_SIZE, Component: folderApp("designs"), startMaximized: true },
   settings: { title: "Settings", icon: Settings2, size: { w: 520, h: 520 }, Component: SettingsApp, maximizable: false },
   about: { title: "About", icon: Info, size: { w: 460, h: 560 }, Component: AboutApp, maximizable: false },

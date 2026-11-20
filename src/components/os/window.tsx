@@ -15,6 +15,16 @@ export type WindowState = Rect & {
 
 const MIN_W = 320;
 const MIN_H = 220;
+/** Fraction of the desktop left free on each side of a maximized window. */
+const MAXIMIZED_GAP = 0.02;
+/** Space the window frame takes around its content: 1px borders, 36px title bar. */
+export const CHROME = { w: 2, h: 38 };
+
+/** The biggest window that fits in maxW x maxH whose content area has `aspect` (w / h). */
+export function fitAspect(maxW: number, maxH: number, aspect: number) {
+  const cw = Math.max(0, Math.min(maxW - CHROME.w, (maxH - CHROME.h) * aspect));
+  return { w: Math.round(cw + CHROME.w), h: Math.round(cw / aspect + CHROME.h) };
+}
 
 type Props = {
   win: WindowState;
@@ -27,6 +37,8 @@ type Props = {
   url?: string;
   /** False hides the maximize button and the double-click-to-maximize. */
   maximizable?: boolean;
+  /** Lock the content area to this ratio (w / h): resizing and maximizing keep it. */
+  aspect?: number;
   /** Area windows may move in. */
   bounds: { w: number; h: number };
   onFocus: () => void;
@@ -45,6 +57,7 @@ export function OsWindow({
   embed,
   url,
   maximizable = true,
+  aspect,
   bounds,
   onFocus,
   onClose,
@@ -85,11 +98,16 @@ export function OsWindow({
             x: clamp(d.rect.x + dx, 80 - d.rect.w, bounds.w - 80),
             y: clamp(d.rect.y + dy, 0, bounds.h - 40),
           }
-        : {
-            ...d.rect,
-            w: clamp(d.rect.w + dx, MIN_W, bounds.w - d.rect.x),
-            h: clamp(d.rect.h + dy, MIN_H, bounds.h - d.rect.y),
-          };
+        : aspect
+          ? {
+              ...d.rect,
+              ...fitAspect(clamp(d.rect.w + dx, MIN_W, bounds.w - d.rect.x), bounds.h - d.rect.y, aspect),
+            }
+          : {
+              ...d.rect,
+              w: clamp(d.rect.w + dx, MIN_W, bounds.w - d.rect.x),
+              h: clamp(d.rect.h + dy, MIN_H, bounds.h - d.rect.y),
+            };
     node.style.left = `${d.last.x}px`;
     node.style.top = `${d.last.y}px`;
     node.style.width = `${d.last.w}px`;
@@ -103,7 +121,14 @@ export function OsWindow({
     if (d && d.last !== d.rect) onRect(d.last);
   };
 
-  const rect = win.maximized ? { x: 0, y: 0, w: bounds.w, h: bounds.h } : win;
+  // "Maximized" leaves a 2% margin on every side rather than covering the whole desktop.
+  const gapX = Math.round(bounds.w * MAXIMIZED_GAP);
+  const gapY = Math.round(bounds.h * MAXIMIZED_GAP);
+  const area = { w: bounds.w - gapX * 2, h: bounds.h - gapY * 2 };
+  const fit = aspect ? fitAspect(area.w, area.h, aspect) : area;
+  const rect = win.maximized
+    ? { x: Math.round((bounds.w - fit.w) / 2), y: Math.round((bounds.h - fit.h) / 2), ...fit }
+    : win;
 
   return (
     <section

@@ -5,7 +5,6 @@ import { FLUX_THEME_IDS, readStored, writeStored, type FluxThemeId } from "@/lib
 import { isFerroPresetId, type FerroPresetId } from "@/lib/ferro-presets";
 import { APPS, DESKTOP_ITEMS, linkFor, type AppId } from "./apps";
 import { DesktopIcon, ICON_H, ICON_W, type Point } from "./desktop-icon";
-import { CLOCK_RESERVE, Clock } from "./clock";
 import { OsContext, type OsContextValue } from "./os-context";
 import { FerroStage } from "./ferro-stage";
 import { FluxHubLogo } from "./flux-hub-logo";
@@ -16,7 +15,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { OsWindow, openInNewTab, type Rect, type WindowState } from "./window";
+import { OsWindow, fitAspect, openInNewTab, type Rect, type WindowState } from "./window";
 
 // Storage keys keep the old "flux-os" prefix so saved settings survive the rename.
 const THEME_KEY = "flux-os:theme";
@@ -34,12 +33,12 @@ const isPoint = (v: unknown): v is Point =>
 const isIconPositions = (v: unknown): v is IconPositions =>
   typeof v === "object" && v !== null && Object.values(v).every(isPoint);
 
-/** Desktop size the default layout was arranged at (icon area, clock strip excluded). */
-const LAYOUT_REF = { w: 1650, h: 1034 - CLOCK_RESERVE };
+/** Desktop size the default layout was arranged at. */
+const LAYOUT_REF = { w: 1650, h: 1034 };
 
 /**
  * First-visit icon layout: a loose scatter down the left, settings tucked
- * bottom-right above the clock. Settings is anchored to the bottom-right corner
+ * bottom-right. Settings is anchored to the bottom-right corner
  * so it follows the screen edge on any size.
  */
 const DEFAULT_LAYOUT: Partial<Record<AppId, Point | { right: number; bottom: number }>> = {
@@ -50,12 +49,12 @@ const DEFAULT_LAYOUT: Partial<Record<AppId, Point | { right: number; bottom: num
   presentation: { x: 262, y: 474 },
   "internal-video": { x: 127, y: 627 },
   "external-video": { x: 248, y: 693 },
-  settings: { right: 204, bottom: 48 },
+  settings: { right: 204, bottom: 100 },
 };
 
 
 export function Desktop() {
-  const [theme, setThemeState] = useState<FluxThemeId>(() => readStored(THEME_KEY, "blue", isThemeId));
+  const [theme, setThemeState] = useState<FluxThemeId>(() => readStored(THEME_KEY, "carrot", isThemeId));
   const [ferro, setFerroState] = useState<FerroPresetId | null>(() =>
     // "liquid" was the sphere's old name
     readStored(FERRO_KEY, "spikes", isFerroChoice, { liquid: "sphere" }),
@@ -72,7 +71,7 @@ export function Desktop() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const bounds = { w: viewport.w, h: viewport.h - CLOCK_RESERVE };
+  const bounds = { w: viewport.w, h: viewport.h };
 
   /** Saved spot, else the default layout, else a top-to-bottom column from the left; kept on screen. */
   const perColumn = Math.max(1, Math.floor((bounds.h - 16) / ICON_H));
@@ -106,9 +105,11 @@ export function Desktop() {
 
   const openApp = (id: AppId) => {
     if (windows.some((w) => w.id === id)) return focus(id);
-    const { size } = APPS[id];
-    const w = Math.min(size.w, bounds.w - 16);
-    const h = Math.min(size.h, bounds.h - 16);
+    const { size, aspect } = APPS[id];
+    const fit = aspect
+      ? fitAspect(Math.min(size.w, bounds.w - 16), Math.min(size.h, bounds.h - 16), aspect)
+      : { w: Math.min(size.w, bounds.w - 16), h: Math.min(size.h, bounds.h - 16) };
+    const { w, h } = fit;
     const offset = (windows.length % 6) * 28;
     const z = ++zTop.current;
     setWindows((ws) => [
@@ -232,6 +233,7 @@ export function Desktop() {
               embed={app.embed}
               url={app.url}
               maximizable={app.maximizable}
+              aspect={app.aspect}
               bounds={bounds}
               onFocus={() => focus(win.id)}
               onClose={() => setWindows((ws) => ws.filter((w) => w.id !== win.id))}
@@ -243,7 +245,6 @@ export function Desktop() {
           );
         })}
 
-        <Clock />
       </main>
     </OsContext.Provider>
   );
